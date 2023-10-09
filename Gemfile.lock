@@ -6,22 +6,6 @@ GIT
     claide (1.1.0)
 
 GIT
-  remote: https://github.com/CocoaPods/Core.git
-  revision: 6d8282c3d34394d53b09defbed34149c20fdf493
-  branch: master
-  specs:
-    cocoapods-core (1.14.1)
-      activesupport (>= 5.0, < 8)
-      addressable (~> 2.8)
-      algoliasearch (~> 1.0)
-      concurrent-ruby (~> 1.1)
-      fuzzy_match (~> 2.0.4)
-      nap (~> 1.0)
-      netrc (~> 0.11)
-      public_suffix (~> 4.0)
-      typhoeus (~> 1.0)
-
-GIT
   remote: https://github.com/CocoaPods/Molinillo.git
   revision: 6bc3d6045edadf800ba1b634fef15d3574369e60
   branch: master
@@ -101,6 +85,22 @@ GIT
     inch_by_inch (1.0.1)
       inch (~> 0.8)
       rake
+
+GIT
+  remote: https://github.com/Dragna/Core
+  revision: 51b625b5505ccf315cc5db8d46bf8c8fb355093d
+  branch: spm-integration
+  specs:
+    cocoapods-core (1.14.1)
+      activesupport (>= 5.0, < 8)
+      addressable (~> 2.8)
+      algoliasearch (~> 1.0)
+      concurrent-ruby (~> 1.1)
+      fuzzy_match (~> 2.0.4)
+      nap (~> 1.0)
+      netrc (~> 0.11)
+      public_suffix (~> 4.0)
+      typhoeus (~> 1.0)
 
 GIT
   remote: https://github.com/leahneukirchen/bacon.git
