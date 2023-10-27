@@ -207,7 +207,9 @@ module Pod
         end
 
         def install_spm_dedpendecies(project, pod_targets)
-          spm_dependencies = pod_targets.flat_map { |target| target.root_spec.consumer(target.platform).spm_dependencies }
+          spm_dependencies = pod_targets.flat_map { |target|
+            target.specs.flat_map{ |spec| spec.consumer(target.platform).spm_dependencies }
+          }
           spm_dependencies_by_url = spm_dependencies.group_by { |dep| dep[:url] }
           merged_spm_dependencies = spm_dependencies_by_url.map do |url, deps|
             [url, _merge_spm_requirements(url, deps.map { |dep| dep[:requirement] })]
