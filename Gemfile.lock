@@ -88,7 +88,7 @@ GIT
 
 GIT
   remote: https://github.com/Dragna/Core
-  revision: 51b625b5505ccf315cc5db8d46bf8c8fb355093d
+  revision: d91d00eb04dd0016d26496bb9cfb5bce80f9fd76
   branch: spm-integration
   specs:
     cocoapods-core (1.14.1)
