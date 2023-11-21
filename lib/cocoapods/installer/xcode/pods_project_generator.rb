@@ -127,6 +127,7 @@ module Pod
         def install_aggregate_targets(project, aggregate_targets)
           UI.message '- Installing Aggregate Targets' do
             aggregate_target_installation_results = Hash[aggregate_targets.sort_by(&:name).map do |target|
+
               target_installer = AggregateTargetInstaller.new(sandbox, project, target)
               [target.name, target_installer.install!]
             end]
@@ -208,18 +209,37 @@ module Pod
 
         def install_spm_dedpendecies(project, pod_targets)
           spm_dependencies = pod_targets.flat_map { |target|
-            target.specs.flat_map{ |spec| spec.consumer(target.platform).spm_dependencies }
+            target.specs.flat_map{ |spec|
+              spec.consumer(target.platform).spm_dependencies
+            }
           }
-          spm_dependencies_by_url = spm_dependencies.group_by { |dep| dep[:url] }
+          puts " 👀 spm_dependencies: #{spm_dependencies}"
+          # merge remote spm packages with the same url
+          remote_spm_dependencies_only = spm_dependencies.select{ |item| item.key?(:url) }
+          spm_dependencies_by_url = remote_spm_dependencies_only.group_by { |dep| dep[:url] }
           merged_spm_dependencies = spm_dependencies_by_url.map do |url, deps|
             [url, _merge_spm_requirements(url, deps.map { |dep| dep[:requirement] })]
           end
-
+          puts " 👀 merged_spm_dependencies: #{merged_spm_dependencies}"
           spm_dependencies_by_url = merged_spm_dependencies.map do |url, requirement|
             [url, project.add_spm_dependency(url, requirement.to_h)]
           end
+          puts " 👀 spm_dependencies_by_url: #{spm_dependencies_by_url}"
 
-          spm_dependencies_by_url.to_h
+          # add local spm dependencies
+          local_spm_dependencies_only = spm_dependencies.select{ |item| item.key?(:path) }
+          puts " 👀 local_spm_dependencies_only: #{local_spm_dependencies_only}"
+          local_spm_dependencies_grouped_by_path = local_spm_dependencies_only.group_by { |dep| dep[:path] }
+          puts " 👀 local_spm_dependencies: #{local_spm_dependencies_grouped_by_path}"
+          local_spm_dependencies_by_path = local_spm_dependencies_grouped_by_path.map do |path, deps|
+            puts " 👀 path: #{path}, deps: #{deps}"
+            [path, project.add_local_spm_dependency(path)]
+          end
+          puts " 👀 local_spm_dependencies_by_path: #{local_spm_dependencies_by_path}"
+
+          all_spm_dependencies = spm_dependencies_by_url.concat(local_spm_dependencies_by_path)
+          puts " 👀 all_spm_dependencies: #{all_spm_dependencies}"
+          all_spm_dependencies.to_h
         end
 
         def _spm_deps_workaround_for_swift(native_target)
@@ -235,10 +255,16 @@ module Pod
           end
         end
 
-        def wire_target_spm_dependencies(target_installation_results, spm_dependencies_by_url)
+        def wire_target_spm_dependencies(target_installation_results, spm_dependencies_by_url_or_path)
+          # puts " 👀 spm_dependencies_by_url_or_path: #{spm_dependencies_by_url_or_path}"
           target_installation_results.pod_target_installation_results.each_value do |pod_target_installation_result|
             target = pod_target_installation_result.target
             spm_deps_to_wire = target.spec_consumers.flat_map(&:spm_dependencies)
+            # target.spec_consumers.each do |spec_consumer|
+            #   puts " 👀 spec_consumer: #{spec_consumer.inspect}"
+            #   puts " 👀 spec_consumer.spm_Dependencies: #{spec_consumer.spm_dependencies}"
+            # end
+            # puts " 👀 spm_deps_to_wire: #{spm_deps_to_wire} for target #{target}"
             spm_deps_to_wire.each do |spm_dep|
               native_target = pod_target_installation_result.native_target
               project = native_target.project
@@ -246,9 +272,17 @@ module Pod
               spm_dep[:products].each do |product_name|
                 product_reference = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
                 product_reference.product_name = product_name
-                product_reference.package = spm_dependencies_by_url[spm_dep[:url]]
+                spmDepRef = spm_dep[:url] ||= spm_dep[:path]
+                # puts " 👀 spmDepRef: #{spmDepRef}"
+                product_reference.package = spm_dependencies_by_url_or_path[spmDepRef]
+                puts " 💪 native_target: #{native_target}"
+                puts " 💪 native_target.package_product_dependencies: #{native_target.package_product_dependencies}"
 
-                native_target.package_product_dependencies << product_reference
+                # Only add the product reference if it hasn't already been added to the target package_product_dependencies
+                # in the pbxproj file it translates to not adding the product reference if it already exists to a given target
+                unless native_target.package_product_dependencies.include?(product_reference)
+                  native_target.package_product_dependencies << product_reference
+                end
 
                 _spm_deps_workaround_for_swift(native_target)
               end

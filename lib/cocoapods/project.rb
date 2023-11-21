@@ -397,6 +397,16 @@ module Pod
       spm_dependency.repositoryURL = url
       spm_dependency.requirement = requirement
       root_object.package_references << spm_dependency
+      puts "👀 package references: #{root_object.package_references}"
+      spm_dependency
+    end
+
+    def add_local_spm_dependency(path)
+      spm_dependency = new(XCLocalSwiftPackageReference)
+      spm_dependency.path = path
+      spm_dependency.relative_path = path
+      root_object.package_references << spm_dependency
+      puts "👀 package references: #{root_object.package_references}"
       spm_dependency
     end
 
